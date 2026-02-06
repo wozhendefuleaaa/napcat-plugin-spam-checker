@@ -1,0 +1,268 @@
+# NapCat 插件开发模板
+
+一个快速开始 NapCat 插件开发的模板项目，基于实际生产项目架构提炼而成。
+
+## 📁 项目结构
+
+```
+napcat-plugin-template/
+├── src/
+│   ├── index.ts              # 插件入口，导出生命周期函数
+│   ├── config.ts             # 配置定义和 WebUI Schema
+│   ├── types.ts              # TypeScript 类型定义
+│   ├── core/
+│   │   └── state.ts          # 全局状态管理单例
+│   ├── handlers/
+│   │   └── message-handler.ts # 消息处理器（命令解析、CD 冷却、消息工具）
+│   ├── services/
+│   │   └── api-service.ts    # WebUI API 路由（无认证模式）
+│   └── webui/                # React SPA 前端（独立构建）
+│       ├── index.html
+│       ├── package.json
+│       ├── vite.config.ts
+│       ├── tailwind.config.js
+│       ├── tsconfig.json
+│       └── src/
+│           ├── App.tsx           # 应用根组件，页面路由
+│           ├── main.tsx          # React 入口
+│           ├── index.css         # TailwindCSS + 自定义样式
+│           ├── types.ts          # 前端类型定义
+│           ├── vite-env.d.ts     # Vite 环境声明
+│           ├── utils/
+│           │   └── api.ts        # API 请求封装（noAuthFetch / authFetch）
+│           ├── hooks/
+│           │   ├── useStatus.ts  # 状态轮询 Hook
+│           │   ├── useTheme.ts   # 主题切换 Hook
+│           │   └── useToast.ts   # Toast 通知 Hook
+│           ├── components/
+│           │   ├── Sidebar.tsx       # 侧边栏导航
+│           │   ├── Header.tsx        # 页面头部
+│           │   ├── ToastContainer.tsx # Toast 通知容器
+│           │   └── icons.tsx         # SVG 图标组件
+│           └── pages/
+│               ├── StatusPage.tsx  # 仪表盘页面
+│               ├── ConfigPage.tsx  # 配置管理页面
+│               └── GroupsPage.tsx  # 群管理页面
+├── scripts/
+│   └── copy-assets.js        # 构建后资源复制脚本
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
+```
+
+## 🚀 快速开始
+
+### 1. 安装依赖
+
+```bash
+pnpm install
+```
+
+### 2. 修改插件信息
+
+编辑 `package.json`，修改以下字段：
+
+```json
+{
+    "name": "napcat-plugin-your-name",
+    "description": "你的插件描述",
+    "author": "你的名字"
+}
+```
+
+### 3. 开发你的功能
+
+- **添加配置项**: 编辑 `src/types.ts` 和 `src/config.ts`
+- **消息处理**: 编辑 `src/handlers/message-handler.ts`
+- **API 路由**: 编辑 `src/services/api-service.ts`
+- **状态管理**: 编辑 `src/core/state.ts`
+- **WebUI 页面**: 编辑 `src/webui/src/pages/` 下的页面组件
+- **WebUI 类型**: 同步更新 `src/webui/src/types.ts` 中的前端类型
+
+### 4. 构建
+
+```bash
+# 完整构建（后端 + 前端 + 资源复制）
+pnpm run build
+
+# 仅构建后端（监听模式）
+pnpm run watch
+
+# 仅构建前端
+pnpm run build:webui
+
+# 前端开发服务器（热更新）
+pnpm run dev:webui
+
+# 类型检查
+pnpm run typecheck
+```
+
+构建产物在 `dist/` 目录下：
+
+```
+dist/
+├── index.mjs           # 插件主入口（Vite 打包）
+├── package.json        # 清理后的 package.json
+└── webui/              # React SPA 构建产物
+    └── index.html      # 单文件 SPA（vite-plugin-singlefile）
+```
+
+## 📖 架构说明
+
+### 分层架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      index.ts (入口)                         │
+│     生命周期钩子 + WebUI 路由/静态资源注册 + 事件分发         │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        ▼                  ▼                  ▼
+┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+│   Handlers    │  │   Services    │  │     WebUI     │
+│  消息处理入口  │  │   业务逻辑    │  │   前端界面    │
+└───────────────┘  └───────────────┘  └───────────────┘
+        │                  │
+        └────────┬─────────┘
+                 ▼
+        ┌───────────────┐
+        │  core/state   │
+        │  全局状态单例  │
+        └───────────────┘
+```
+
+### 核心设计模式
+
+| 模式 | 实现位置 | 说明 |
+|------|----------|------|
+| 单例状态 | `src/core/state.ts` | `pluginState` 全局单例，持有 ctx、config、logger |
+| 服务分层 | `src/services/*.ts` | 按职责拆分业务逻辑 |
+| 配置校验 | `sanitizeConfig()` | 类型安全的运行时配置验证 |
+| CD 冷却 | `cooldownMap` | `Map<groupId:command, expireTimestamp>` |
+
+## 🔧 生命周期函数
+
+| 导出 | 说明 |
+|------|------|
+| `plugin_init` | 插件初始化，加载配置、注册路由 |
+| `plugin_onmessage` | 消息事件处理 |
+| `plugin_cleanup` | 插件卸载，清理资源 |
+| `plugin_config_ui` | WebUI 配置 Schema |
+| `plugin_get_config` | 获取配置 |
+| `plugin_set_config` | 设置配置 |
+| `plugin_on_config_change` | 配置变更回调 |
+
+## 🌐 WebUI API 路由
+
+模板使用 **无认证路由**（`router.getNoAuth` / `router.postNoAuth`），适用于插件自带的 WebUI 页面调用。
+
+> NapCat 路由器提供两种注册方式：
+> - `router.get` / `router.post`：需要 NapCat WebUI 登录认证
+> - `router.getNoAuth` / `router.postNoAuth`：无需认证，插件 WebUI 页面可直接调用
+
+### 内置 API 接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/info` | 获取插件信息 |
+| GET | `/status` | 获取运行状态、配置、统计 |
+| GET | `/config` | 获取当前配置 |
+| POST | `/config` | 保存配置（合并更新） |
+| GET | `/groups` | 获取群列表（含启用状态） |
+| POST | `/groups/:id/config` | 更新单个群配置 |
+| POST | `/groups/bulk-config` | 批量更新群配置 |
+
+### 前端调用方式
+
+```javascript
+// 无认证 API 请求
+const url = `/api/plugin/${PLUGIN_NAME}${path}`;
+const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+});
+```
+
+## 📝 编码约定
+
+### ESM 模块规范
+
+- `package.json` 中 `type: "module"`
+- 构建目标 `ESNext`，输出 `.mjs`
+
+### 状态访问模式
+
+```typescript
+import { pluginState } from '../core/state';
+
+// 读取配置
+const config = pluginState.config;
+
+// 记录日志（三级别）
+pluginState.log('info', '消息内容');
+pluginState.log('warn', '警告内容');
+pluginState.log('error', '错误内容', error);
+pluginState.logDebug('调试信息'); // 仅 debug 模式输出
+
+// 配置操作
+pluginState.setConfig(ctx, { key: value });       // 合并更新
+pluginState.replaceConfig(ctx, fullConfig);        // 完整替换
+pluginState.updateGroupConfig(ctx, groupId, cfg);  // 更新群配置
+pluginState.isGroupEnabled(groupId);               // 检查群启用状态
+
+// 调用 OneBot API
+await pluginState.callApi('send_group_msg', { group_id, message });
+
+// 统计
+pluginState.incrementProcessedCount();
+```
+
+### 消息发送模式
+
+```typescript
+import {
+    sendGroupMessage, sendPrivateMessage, sendGroupForwardMsg,
+    setMsgEmojiLike, uploadGroupFile,
+    textSegment, imageSegment, atSegment, replySegment, buildForwardNode
+} from '../handlers/message-handler';
+
+// 发送群消息（带回复）
+await sendGroupMessage(ctx, groupId, [
+    replySegment(messageId),
+    textSegment('消息内容')
+]);
+
+// 合并转发消息
+const nodes = [
+    buildForwardNode('10001', 'Bot', [textSegment('第一条')]),
+    buildForwardNode('10001', 'Bot', [textSegment('第二条')]),
+];
+await sendGroupForwardMsg(ctx, groupId, nodes);
+
+// 表情回复
+await setMsgEmojiLike(ctx, messageId, '76');
+
+// 上传群文件
+await uploadGroupFile(ctx, groupId, '/path/to/file.zip', 'file.zip');
+```
+
+### API 响应格式
+
+```typescript
+// 成功响应
+res.json({ code: 0, data: { ... } });
+
+// 错误响应
+res.status(500).json({ code: -1, message: '错误描述' });
+```
+
+## 📦 部署
+
+将 `dist/` 目录的内容复制到 NapCat 的插件目录即可。
+
+## 📄 许可证
+
+MIT License
