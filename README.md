@@ -250,7 +250,7 @@ res.status(500).json({ code: -1, message: '错误描述' });
 
 ## 🤖 AI 辅助开发
 
-项目内置了 NapCat API 的 [Apifox MCP Server](https://apifox.com/help/ai-integration/mcp-server) 配置（`.vscode/mcp.json`），在 VS Code 中配合 AI 助手（如 GitHub Copilot）使用时，可以直接查询 NapCat 的完整 API 文档。
+项目内置了 NapCat API 的 Apifox MCP Server 配置（`.vscode/mcp.json`），在 VS Code 中配合 AI 助手（如 GitHub Copilot）使用时，可以直接查询 NapCat 的完整 API 文档。
 
 ### 使用方式
 
