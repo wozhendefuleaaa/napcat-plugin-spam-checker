@@ -248,6 +248,22 @@ res.json({ code: 0, data: { ... } });
 res.status(500).json({ code: -1, message: '错误描述' });
 ```
 
+## 🤖 AI 辅助开发
+
+项目内置了 NapCat API 的 [Apifox MCP Server](https://apifox.com/help/ai-integration/mcp-server) 配置（`.vscode/mcp.json`），在 VS Code 中配合 AI 助手（如 GitHub Copilot）使用时，可以直接查询 NapCat 的完整 API 文档。
+
+### 使用方式
+
+1. 使用 VS Code 打开本项目
+2. 确保已安装 [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) 扩展
+3. 打开 Copilot Chat，MCP Server 会自动启动
+4. 在对话中即可让 AI 查询 NapCat API 接口信息，例如：
+   - *"NapCat 有哪些发送消息的 API？"*
+   - *"获取群列表的接口参数是什么？"*
+   - *"帮我调用 send_group_msg 发送一条群消息"*
+
+> MCP 配置位于 `.vscode/mcp.json`，使用 `apifox-mcp-server` 连接 NapCat 的 API 文档站点，无需额外配置。
+
 ## 📦 部署
 
 将 `dist/` 目录的内容复制到 NapCat 的插件目录即可。
