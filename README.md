@@ -43,11 +43,16 @@ napcat-plugin-template/
 │               ├── StatusPage.tsx  # 仪表盘页面
 │               ├── ConfigPage.tsx  # 配置管理页面
 │               └── GroupsPage.tsx  # 群管理页面
-├── scripts/
-│   └── copy-assets.js        # 构建后资源复制脚本
+├── .github/
+│   ├── workflows/
+│   │   └── release.yml        # CI/CD 自动构建发布
+│   ├── prompt/
+│   │   ├── default.md             # 默认 Release Note 模板（回退用）
+│   │   └── ai-release-note.md     # （可选）AI Release Note 自定义 Prompt
+│   └── copilot-instructions.md  # Copilot 上下文说明
 ├── package.json
 ├── tsconfig.json
-├── vite.config.ts
+├── vite.config.ts             # Vite 构建配置（含资源复制插件）
 └── README.md
 ```
 
@@ -83,7 +88,7 @@ pnpm install
 ### 4. 构建
 
 ```bash
-# 完整构建（后端 + 前端 + 资源复制）
+# 完整构建（前端 + 后端 + 资源复制，一步完成）
 pnpm run build
 
 # 仅构建后端（监听模式）
@@ -92,7 +97,7 @@ pnpm run watch
 # 仅构建前端
 pnpm run build:webui
 
-# 前端开发服务器（热更新）
+# 前端开发服务器（热更新，自动代理到 NapCat）
 pnpm run dev:webui
 
 # 类型检查
@@ -264,9 +269,94 @@ res.status(500).json({ code: -1, message: '错误描述' });
 
 > MCP 配置位于 `.vscode/mcp.json`，使用 `apifox-mcp-server` 连接 NapCat 的 API 文档站点，无需额外配置。
 
+## 🚀 CI/CD 自动发布
+
+项目内置了两个 GitHub Actions 工作流：
+
+### 1. 自动构建发布（`release.yml`）
+
+推送 `v*` 格式的 tag 即可自动构建并创建 GitHub Release。
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+也可在 GitHub Actions 页面手动触发，可选填版本号。
+
+**基础自定义：**
+- 修改 `release.yml` 中的 `PLUGIN_NAME` 为你的插件名称
+- 默认 Release Note 模板位于 `.github/prompt/default.md`
+
+#### 🤖 AI 生成 Release Note（可选）
+
+支持接入任意兼容 OpenAI 格式的 AI API，自动根据 git commit 记录生成结构化的 Release Note。
+
+**配置方式：** 在插件仓库 **Settings > Secrets and variables > Actions** 中添加以下 Secrets：
+
+| Secret | 必填 | 说明 |
+|--------|------|------|
+| `AI_API_URL` | ✅ | 兼容 OpenAI 格式的 API 地址（如 `https://api.openai.com/v1/chat/completions`） |
+| `AI_API_KEY` | ✅ | 对应的 API 密钥 |
+| `AI_MODEL` | ❌ | 模型名称，默认 `gpt-4o-mini` |
+
+**工作逻辑：**
+- ✅ 配置了 `AI_API_URL` + `AI_API_KEY` → 自动调用 AI 生成 Release Note
+- ❌ 未配置或 AI 调用失败 → 自动回退到默认模板（`.github/prompt/default.md`）或 commit log
+- AI 调用失败不会阻断发布流程，始终保证 Release 正常创建
+
+**自定义 AI Prompt：** 创建 `.github/prompt/ai-release-note.md` 文件即可覆盖默认的 system prompt，支持 `{VERSION}` 占位符。
+
+> 💡 不配置任何 AI 相关的 Secret，发布流程与之前完全一致，无任何影响。
+
+### 2. 自动更新插件索引（`update-index.yml`）
+
+Release 发布后，会自动向 [napcat-plugin-index](https://github.com/NapNeko/napcat-plugin-index) 提交 PR 更新插件索引，**无需手动编辑 `plugins.v4.json`**。
+
+**完整流程：**
+
+```
+push tag → release.yml 构建发布 → update-index.yml 自动提交 PR → 索引仓库 CI 自动审核 → 维护者合并
+```
+
+**配置步骤：**
+
+1. **填写 `package.json` 中的插件元信息**（CI 会自动读取）：
+   ```json
+   {
+     "name": "napcat-plugin-your-name",
+     "plugin": "你的插件显示名",
+     "version": "1.0.0",
+     "description": "插件描述",
+     "author": "你的名字",
+     "napcat": {
+       "tags": ["工具"],
+       "minVersion": "4.14.0",
+       "homepage": "https://github.com/username/napcat-plugin-your-name"
+     }
+   }
+   ```
+
+   `napcat` 字段说明：
+
+   | 字段 | 说明 | 默认值 |
+   |------|------|--------|
+   | `tags` | 插件标签数组，用于分类 | `["工具"]` |
+   | `minVersion` | 支持的最低 NapCat 版本 | `"4.14.0"` |
+   | `homepage` | 插件主页 URL | 仓库地址 |
+
+2. **配置仓库 Secret**：在插件仓库 Settings > Secrets and variables > Actions 中添加：
+   - `INDEX_PAT`：一个有 `public_repo` 权限的 GitHub Personal Access Token，用于向索引仓库提交 PR
+
+3. **修改 `update-index.yml`**（可选）：如果索引仓库不是 `NapNeko/napcat-plugin-index`，修改 `INDEX_REPO` 环境变量
+
+> 💡 配置完成后，每次发布新版本只需 `git tag v1.x.x && git push origin v1.x.x`，一切自动完成！
+
 ## 📦 部署
 
 将 `dist/` 目录的内容复制到 NapCat 的插件目录即可。
+
+> 💡 使用 CI/CD 自动发布后，可直接从 GitHub Release 下载 zip 包解压到 `plugins` 目录。
 
 ## 📄 许可证
 
