@@ -91,9 +91,6 @@ pnpm install
 # 完整构建（前端 + 后端 + 资源复制，一步完成）
 pnpm run build
 
-# 仅构建后端（监听模式）
-pnpm run watch
-
 # 仅构建前端
 pnpm run build:webui
 
@@ -118,6 +115,10 @@ pnpm run dev
 
 > `deploy` = `vite build`（构建完成时 Vite 插件自动部署+重载）  
 > `dev` = `vite build --watch`（每次重新构建后 Vite 插件自动部署+重载）
+
+> **注意**：`pnpm run dev` 仅监听**插件后端**（`src/` 下非 webui 的文件）的变化。修改 WebUI 前端代码后，随便改动一下后端文件即可触发重新构建（每次后端构建时会自动构建并部署 WebUI）。
+>
+> 如果只开发 WebUI 前端，推荐使用 `pnpm run dev:webui` 启动前端开发服务器，可实时预览。
 
 `vite.config.ts` 中的 `napcatHmrPlugin()` 会在每次 `writeBundle` 时自动：连接调试服务 → 获取远程插件目录 → 复制 dist/ → 调用 reloadPlugin。
 
