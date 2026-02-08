@@ -85,7 +85,7 @@ pnpm install
 - **WebUI 页面**: 编辑 `src/webui/src/pages/` 下的页面组件
 - **WebUI 类型**: 同步更新 `src/webui/src/types.ts` 中的前端类型
 
-### 4. 构建
+### 4. 构建 & 开发
 
 ```bash
 # 完整构建（前端 + 后端 + 资源复制，一步完成）
@@ -102,6 +102,46 @@ pnpm run dev:webui
 
 # 类型检查
 pnpm run typecheck
+```
+
+### 5. 调试 & 热重载
+
+项目通过 Vite 插件 `napcatHmrPlugin` 集成了热重载能力（已在 `vite.config.ts` 中配置），需要在 NapCat 端安装 `napcat-plugin-debug` 插件并启用。
+
+```bash
+# 一键部署：构建 → 自动复制到远程插件目录 → 自动重载
+pnpm run deploy
+
+# 开发模式：watch 构建 + 每次构建后自动部署 + 热重载（单进程）
+pnpm run dev
+```
+
+> `deploy` = `vite build`（构建完成时 Vite 插件自动部署+重载）  
+> `dev` = `vite build --watch`（每次重新构建后 Vite 插件自动部署+重载）
+
+`vite.config.ts` 中的 `napcatHmrPlugin()` 会在每次 `writeBundle` 时自动：连接调试服务 → 获取远程插件目录 → 复制 dist/ → 调用 reloadPlugin。
+
+如需自定义调试服务地址或 token：
+
+```typescript
+// vite.config.ts
+napcatHmrPlugin({
+  wsUrl: 'ws://192.168.1.100:8998',
+  token: 'mySecret',
+})
+```
+
+**CLI 交互模式（可选）：**
+
+```bash
+# 独立运行 CLI，进入交互模式（REPL）
+npx napcat-debug
+
+# 交互命令
+debug> list              # 列出所有插件
+debug> deploy            # 部署当前目录插件
+debug> reload <id>       # 重载指定插件
+debug> status            # 查看服务状态
 ```
 
 构建产物在 `dist/` 目录下：
@@ -353,6 +393,18 @@ push tag → release.yml 构建发布 → update-index.yml 自动提交 PR → �
 > 💡 配置完成后，每次发布新版本只需 `git tag v1.x.x && git push origin v1.x.x`，一切自动完成！
 
 ## 📦 部署
+
+### 方式一：一键部署（推荐开发时使用）
+
+确保 NapCat 端已安装并启用 `napcat-plugin-debug` 插件，然后：
+
+```bash
+pnpm run deploy
+```
+
+这会自动构建，`napcatHmrPlugin` 在构建完成后自动复制 `dist/` 到远程插件目录并触发热重载。
+
+### 方式二：手动部署
 
 将 `dist/` 目录的内容复制到 NapCat 的插件目录即可。
 
