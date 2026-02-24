@@ -52,6 +52,8 @@ export interface PluginConfig {
     warnMessage: string;
     /** 白名单用户（不检测） */
     whitelist: string[];
+    /** 群白名单（只检测这些群，为空则检测所有群） */
+    groupWhitelist: string[];
     /** 按群的单独配置 */
     groupConfigs: Record<string, GroupConfig>;
 }

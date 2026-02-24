@@ -39,11 +39,14 @@ export async function handleMessage(ctx: any, event: any): Promise<void> {
     const userId = String(event.user_id);
     const config = pluginState.config;
 
+    // 检查群白名单（只检测白名单内的群）
+    if (config.groupWhitelist.length > 0 && !config.groupWhitelist.includes(groupId)) return;
+
     // 检查群是否启用
     const groupConfig = config.groupConfigs[groupId];
     if (groupConfig?.enabled === false) return;
 
-    // 检查白名单
+    // 检查用户白名单
     if (config.whitelist.includes(userId)) return;
 
     const content = extractText(event.message);

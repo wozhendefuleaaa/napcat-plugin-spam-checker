@@ -46,6 +46,9 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (typeof raw.warnMessage === 'string') out.warnMessage = raw.warnMessage;
     if (Array.isArray(raw.whitelist)) out.whitelist = raw.whitelist.filter((x): x is string => typeof x === 'string');
     else if (typeof raw.whitelist === 'string') out.whitelist = raw.whitelist.split(',').map(s => s.trim()).filter(Boolean);
+    
+    if (Array.isArray(raw.groupWhitelist)) out.groupWhitelist = raw.groupWhitelist.filter((x): x is string => typeof x === 'string');
+    else if (typeof raw.groupWhitelist === 'string') out.groupWhitelist = raw.groupWhitelist.split(',').map(s => s.trim()).filter(Boolean);
 
     if (isObject(raw.groupConfigs)) {
         for (const [groupId, groupConfig] of Object.entries(raw.groupConfigs)) {

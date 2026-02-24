@@ -29,6 +29,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
     muteDuration: 10,
     warnMessage: '检测到刷屏行为，请注意发言频率',
     whitelist: [],
+    groupWhitelist: [],
     groupConfigs: {},
 };
 
@@ -38,6 +39,7 @@ export function buildConfigSchema(ctx: any): any[] {
             <div style="padding: 16px; background: #FB7299; border-radius: 12px; margin-bottom: 20px; color: white;">
                 <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 600;">群聊刷屏检测</h3>
                 <p style="margin: 0; font-size: 13px; opacity: 0.85;">检测群聊中的刷屏行为并自动处理</p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.7;">交流群: 649909855</p>
             </div>
         `),
         ctx.NapCatConfig.boolean('enabled', '启用插件', true, '是否启用刷屏检测功能'),
@@ -50,6 +52,7 @@ export function buildConfigSchema(ctx: any): any[] {
         ctx.NapCatConfig.number('muteDuration', '禁言时长（分钟）', 10, '禁言处理时的禁言时长'),
         ctx.NapCatConfig.text('warnMessage', '警告消息', '检测到刷屏行为，请注意发言频率', '发送给刷屏用户的警告消息'),
         ctx.NapCatConfig.text('whitelist', '白名单用户', '', '不检测的用户QQ号，多个用逗号分隔'),
+        ctx.NapCatConfig.text('groupWhitelist', '群白名单', '', '只检测这些群，多个用逗号分隔，为空则检测所有群'),
         // 重复消息检测
         ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">重复消息检测</div>'),
         ctx.NapCatConfig.number('spam.repeatWindow', '时间窗口（秒）', 5, '检测重复消息的时间范围'),
