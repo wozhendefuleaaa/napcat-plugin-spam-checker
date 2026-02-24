@@ -171,6 +171,7 @@ jobs:
           ref: ${{ env.INDEX_BRANCH }}
           path: plugin-index
           token: ${{ secrets.INDEX_PAT }}
+          persist-credentials: false
 
       - name: Update plugins.v4.json
         env:
