@@ -1,51 +1,84 @@
 /**
  * 插件配置模块
- * 定义默认配置值和 WebUI 配置 Schema
  */
 
-import type { NapCatPluginContext, PluginConfigSchema } from 'napcat-types/napcat-onebot/network/plugin/types';
 import type { PluginConfig } from './types';
 
-/** 默认配置 */
 export const DEFAULT_CONFIG: PluginConfig = {
     enabled: true,
     debug: false,
-    commandPrefix: '#cmd',
-    cooldownSeconds: 60,
+    spam: {
+        repeatWindow: 5,
+        repeatCount: 3,
+        frequencyWindow: 10,
+        frequencyCount: 10,
+        similarityThreshold: 0.8,
+        similarityWindow: 10,
+        similarityCount: 3,
+        keywordWindow: 30,
+        keywordCount: 5,
+        mediaWindow: 30,
+        mediaCount: 5,
+        atSingleLimit: 5,
+        atWindow: 30,
+        atWindowLimit: 10,
+        linkWindow: 30,
+        linkCount: 5,
+    },
+    action: 'warn',
+    muteDuration: 10,
+    warnMessage: '检测到刷屏行为，请注意发言频率',
+    whitelist: [],
     groupConfigs: {},
-    // TODO: 在这里添加你的默认配置值
 };
 
-/**
- * 构建 WebUI 配置 Schema
- *
- * 使用 ctx.NapCatConfig 提供的构建器方法生成配置界面：
- *   - boolean(key, label, defaultValue?, description?, reactive?)  → 开关
- *   - text(key, label, defaultValue?, description?, reactive?)     → 文本输入
- *   - number(key, label, defaultValue?, description?, reactive?)   → 数字输入
- *   - select(key, label, options, defaultValue?, description?)     → 下拉单选
- *   - multiSelect(key, label, options, defaultValue?, description?) → 下拉多选
- *   - html(content)     → 自定义 HTML 展示（不保存值）
- *   - plainText(content) → 纯文本说明
- *   - combine(...items)  → 组合多个配置项为 Schema
- */
-export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema {
+export function buildConfigSchema(ctx: any): any[] {
     return ctx.NapCatConfig.combine(
-        // 插件信息头部
         ctx.NapCatConfig.html(`
             <div style="padding: 16px; background: #FB7299; border-radius: 12px; margin-bottom: 20px; color: white;">
-                <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 600;">插件模板</h3>
-                <p style="margin: 0; font-size: 13px; opacity: 0.85;">NapCat 插件开发模板，请根据需要修改配置</p>
+                <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 600;">群聊刷屏检测</h3>
+                <p style="margin: 0; font-size: 13px; opacity: 0.85;">检测群聊中的刷屏行为并自动处理</p>
             </div>
         `),
-        // 全局开关
-        ctx.NapCatConfig.boolean('enabled', '启用插件', true, '是否启用此插件的功能'),
-        // 调试模式
-        ctx.NapCatConfig.boolean('debug', '调试模式', false, '启用后将输出详细的调试日志'),
-        // 命令前缀
-        ctx.NapCatConfig.text('commandPrefix', '命令前缀', '#cmd', '触发命令的前缀，默认为 #cmd'),
-        // 冷却时间
-        ctx.NapCatConfig.number('cooldownSeconds', '冷却时间（秒）', 60, '同一命令请求冷却时间，0 表示不限制')
-        // TODO: 在这里添加你的配置项
+        ctx.NapCatConfig.boolean('enabled', '启用插件', true, '是否启用刷屏检测功能'),
+        ctx.NapCatConfig.boolean('debug', '调试模式', false, '启用后输出详细日志'),
+        ctx.NapCatConfig.select('action', '处理方式', [
+            { label: '仅警告', value: 'warn' },
+            { label: '禁言', value: 'mute' },
+            { label: '踢出', value: 'kick' },
+        ], 'warn', '检测到刷屏时的处理方式'),
+        ctx.NapCatConfig.number('muteDuration', '禁言时长（分钟）', 10, '禁言处理时的禁言时长'),
+        ctx.NapCatConfig.text('warnMessage', '警告消息', '检测到刷屏行为，请注意发言频率', '发送给刷屏用户的警告消息'),
+        ctx.NapCatConfig.text('whitelist', '白名单用户', '', '不检测的用户QQ号，多个用逗号分隔'),
+        // 重复消息检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">重复消息检测</div>'),
+        ctx.NapCatConfig.number('spam.repeatWindow', '时间窗口（秒）', 5, '检测重复消息的时间范围'),
+        ctx.NapCatConfig.number('spam.repeatCount', '触发次数', 3, '时间窗口内发送相同消息的次数'),
+        // 消息频率检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">消息频率检测</div>'),
+        ctx.NapCatConfig.number('spam.frequencyWindow', '时间窗口（秒）', 10, '检测消息频率的时间范围'),
+        ctx.NapCatConfig.number('spam.frequencyCount', '触发次数', 10, '时间窗口内发送消息的次数'),
+        // 相似消息检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">相似消息检测</div>'),
+        ctx.NapCatConfig.number('spam.similarityThreshold', '相似度阈值', 0.8, '消息相似度阈值（0-1）'),
+        ctx.NapCatConfig.number('spam.similarityWindow', '时间窗口（秒）', 10, '检测相似消息的时间范围'),
+        ctx.NapCatConfig.number('spam.similarityCount', '触发次数', 3, '时间窗口内相似消息的次数'),
+        // 关键词重复检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">关键词重复检测</div>'),
+        ctx.NapCatConfig.number('spam.keywordWindow', '时间窗口（秒）', 30, '检测关键词重复的时间范围'),
+        ctx.NapCatConfig.number('spam.keywordCount', '触发次数', 5, '时间窗口内同一关键词出现次数'),
+        // 媒体刷屏检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">媒体刷屏检测</div>'),
+        ctx.NapCatConfig.number('spam.mediaWindow', '时间窗口（秒）', 30, '检测媒体刷屏的时间范围'),
+        ctx.NapCatConfig.number('spam.mediaCount', '触发次数', 5, '时间窗口内发送图片/视频的次数'),
+        // @刷屏检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">@刷屏检测</div>'),
+        ctx.NapCatConfig.number('spam.atSingleLimit', '单条@人数上限', 5, '单条消息@人数超过此值触发'),
+        ctx.NapCatConfig.number('spam.atWindow', '时间窗口（秒）', 30, '检测@刷屏的时间范围'),
+        ctx.NapCatConfig.number('spam.atWindowLimit', '窗口@人数上限', 10, '时间窗口内@总人数超过此值触发'),
+        // 链接刷屏检测
+        ctx.NapCatConfig.html('<div style="margin: 16px 0 8px; font-weight: 600; color: #333;">链接刷屏检测</div>'),
+        ctx.NapCatConfig.number('spam.linkWindow', '时间窗口（秒）', 30, '检测链接刷屏的时间范围'),
+        ctx.NapCatConfig.number('spam.linkCount', '触发次数', 5, '时间窗口内发送链接的次数')
     );
 }
